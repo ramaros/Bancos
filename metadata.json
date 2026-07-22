@@ -1,0 +1,6 @@
+{
+  "name": "Controle Bancário e Investimentos",
+  "description": "Aplicativo para controle de contas bancárias, investimentos e acompanhamento de saldos mensais com PIN de acesso.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

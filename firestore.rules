@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny catch-all safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper to validate IDs to prevent resource poisoning attacks
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    match /accounts/{accountId} {
+      allow read: if true;
+      allow create, update: if isValidId(accountId)
+        && request.resource.data.instituicao is string
+        && request.resource.data.instituicao.size() <= 100
+        && request.resource.data.descricao is string
+        && request.resource.data.descricao.size() <= 200
+        && request.resource.data.responsavel is string
+        && request.resource.data.responsavel.size() <= 50
+        && request.resource.data.saldo is number;
+      allow delete: if true;
+    }
+
+    match /investments/{investmentId} {
+      allow read: if true;
+      allow create, update: if isValidId(investmentId)
+        && request.resource.data.instituicao is string
+        && request.resource.data.instituicao.size() <= 100
+        && request.resource.data.descricao is string
+        && request.resource.data.descricao.size() <= 200
+        && request.resource.data.saldo is number;
+      allow delete: if true;
+    }
+
+    match /history/{historyId} {
+      allow read: if true;
+      allow create, update: if isValidId(historyId)
+        && request.resource.data.data is string
+        && request.resource.data.data.matches('^[a-zA-Z0-9_\\-]+$')
+        && request.resource.data.contaBancaria is number
+        && request.resource.data.investimentos is number
+        && request.resource.data.total is number;
+      allow delete: if true;
+    }
+
+    match /security/{configId} {
+      allow read: if true;
+      allow create, update: if isValidId(configId)
+        && request.resource.data.pinHash is string
+        && request.resource.data.pinHash.size() <= 128;
+      allow delete: if true;
+    }
+  }
+}

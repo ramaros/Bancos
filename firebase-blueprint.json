@@ -1,0 +1,76 @@
+{
+  "entities": {
+    "BankAccount": {
+      "title": "Bank Account",
+      "description": "Represents a user's bank account and its current balance.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "instituicao": { "type": "string", "maxLength": 100 },
+        "descricao": { "type": "string", "maxLength": 200 },
+        "responsavel": { "type": "string", "maxLength": 50 },
+        "saldo": { "type": "number" },
+        "order": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "instituicao", "descricao", "responsavel", "saldo"]
+    },
+    "Investment": {
+      "title": "Investment",
+      "description": "Represents an investment and its current balance.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "instituicao": { "type": "string", "maxLength": 100 },
+        "descricao": { "type": "string", "maxLength": 200 },
+        "saldo": { "type": "number" },
+        "order": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "instituicao", "descricao", "saldo"]
+    },
+    "MonthlyHistory": {
+      "title": "Monthly History",
+      "description": "Represents the sum of bank accounts and investments for a specific month.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "data": { "type": "string", "pattern": "^[a-z]+-[0-9]{2}$" },
+        "contaBancaria": { "type": "number" },
+        "investimentos": { "type": "number" },
+        "total": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "data", "contaBancaria", "investimentos", "total"]
+    },
+    "SecurityConfig": {
+      "title": "Security Config",
+      "description": "App access security configuration, such as the PIN hash.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "pinHash": { "type": "string", "maxLength": 128 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "pinHash"]
+    }
+  },
+  "firestore": {
+    "/accounts/{accountId}": {
+      "schema": "BankAccount",
+      "description": "User registered bank accounts"
+    },
+    "/investments/{investmentId}": {
+      "schema": "Investment",
+      "description": "User registered investments"
+    },
+    "/history/{historyId}": {
+      "schema": "MonthlyHistory",
+      "description": "Monthly totals history records"
+    },
+    "/security/{configId}": {
+      "schema": "SecurityConfig",
+      "description": "Access configurations, such as the PIN hash"
+    }
+  }
+}
