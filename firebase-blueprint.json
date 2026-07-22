@@ -68,7 +68,7 @@
       "schema": "MonthlyHistory",
       "description": "Monthly totals history records"
     },
-    "/security/{configId}": {
+    "/config/{configId}": {
       "schema": "SecurityConfig",
       "description": "Access configurations, such as the PIN hash"
     }

@@ -12,7 +12,7 @@ import {
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../firebase";
 import { ContaBancaria, Investimento, HistoricoMensal } from "../types";
-import { getCurrentMonthStr, formatCurrency } from "../utils";
+import { getCurrentMonthStr, formatCurrency, parseMonthYearToSortValue } from "../utils";
 import AccountsTable from "./AccountsTable";
 import InvestmentsTable from "./InvestmentsTable";
 import HistoryTable from "./HistoryTable";
@@ -27,6 +27,7 @@ import {
   ArrowRight,
   LogOut,
   Sparkles,
+  Calendar,
 } from "lucide-react";
 
 interface DashboardProps {
@@ -115,6 +116,30 @@ export default function Dashboard({ onLock }: DashboardProps) {
   const totalAccounts = accounts.reduce((sum, item) => sum + (item.saldo || 0), 0);
   const totalInvestments = investments.reduce((sum, item) => sum + (item.saldo || 0), 0);
   const grandTotal = totalAccounts + totalInvestments;
+
+  // Monthly Summary Calculations
+  const historyForActiveMonth = history.find((h) => h.data === activeMonth);
+  const summaryAccountsTotal = historyForActiveMonth ? historyForActiveMonth.contaBancaria : totalAccounts;
+  const summaryInvestmentsTotal = historyForActiveMonth ? historyForActiveMonth.investimentos : totalInvestments;
+  const summaryGrandTotal = historyForActiveMonth ? historyForActiveMonth.total : grandTotal;
+  const hasHistoryForActiveMonth = !!historyForActiveMonth;
+
+  // Find previous month chronologically
+  const sortedHistoryList = [...history].sort((a, b) => {
+    return parseMonthYearToSortValue(a.data) - parseMonthYearToSortValue(b.data);
+  });
+
+  let prevMonthHistory: HistoricoMensal | undefined;
+  if (historyForActiveMonth) {
+    const activeIdx = sortedHistoryList.findIndex((h) => h.id === historyForActiveMonth.id);
+    if (activeIdx > 0) {
+      prevMonthHistory = sortedHistoryList[activeIdx - 1];
+    }
+  } else if (sortedHistoryList.length > 0) {
+    prevMonthHistory = sortedHistoryList[sortedHistoryList.length - 1];
+  }
+
+  const deltaTotal = prevMonthHistory ? summaryGrandTotal - prevMonthHistory.total : 0;
 
   // Manage accounts
   const handleAddAccount = async (newAcc: Omit<ContaBancaria, "id" | "order">) => {
@@ -392,45 +417,105 @@ export default function Dashboard({ onLock }: DashboardProps) {
           </div>
         )}
 
-        {/* 1. Metric Summary Cards */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6" id="summary-metrics">
-          {/* Card Contas Bancárias */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Conta Bancária</span>
-              <span className="text-2xl font-black text-purple-700">{formatCurrency(totalAccounts)}</span>
+        {/* Monthly Summary View */}
+        <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" id="monthly-summary-view">
+          <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="bg-indigo-600 text-white p-2 rounded-xl">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-md font-bold text-slate-800">Resumo Mensal ({activeMonth})</h2>
+                <p className="text-[11px] text-slate-400">Totalizadores de recursos para o mês de referência selecionado</p>
+              </div>
             </div>
-            <div className="bg-purple-50 text-purple-600 p-4 rounded-xl">
-              <Wallet className="w-6 h-6" />
-            </div>
-          </div>
-
-          {/* Card Investimentos */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Investimentos</span>
-              <span className="text-2xl font-black text-blue-600">{formatCurrency(totalInvestments)}</span>
-            </div>
-            <div className="bg-blue-50 text-blue-600 p-4 rounded-xl">
-              <TrendingUp className="w-6 h-6" />
+            <div className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+              hasHistoryForActiveMonth 
+                ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
+                : "bg-amber-50 text-amber-700 border border-amber-200"
+            }`}>
+              {hasHistoryForActiveMonth ? "Consolidado no Histórico" : "Saldos Atuais em Tempo Real"}
             </div>
           </div>
 
-          {/* Card Total */}
-          <div className="bg-slate-900 p-6 rounded-2xl shadow-md flex items-center justify-between text-white border border-slate-800">
-            <div>
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Soma de Recursos</span>
-              <span className="text-2xl font-black text-emerald-400">{formatCurrency(grandTotal)}</span>
+          <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Accounts Card */}
+            <div className="bg-slate-50/50 p-5 rounded-xl border border-slate-100 flex flex-col justify-between">
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Total de Contas Bancárias</span>
+                <span className="text-2xl font-black text-purple-700">{formatCurrency(summaryAccountsTotal)}</span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-3">
+                {hasHistoryForActiveMonth 
+                  ? `Saldos consolidados no histórico para ${activeMonth}` 
+                  : "Soma das contas correntes e poupanças ativas"}
+              </p>
             </div>
-            <div className="bg-slate-800 text-emerald-400 p-4 rounded-xl">
-              <DollarSign className="w-6 h-6" />
+
+            {/* Investments Card */}
+            <div className="bg-slate-50/50 p-5 rounded-xl border border-slate-100 flex flex-col justify-between">
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Total de Investimentos</span>
+                <span className="text-2xl font-black text-blue-600">{formatCurrency(summaryInvestmentsTotal)}</span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-3">
+                {hasHistoryForActiveMonth 
+                  ? `Ativos consolidados no histórico para ${activeMonth}` 
+                  : "Soma de todas as aplicações e fundos ativos"}
+              </p>
             </div>
+
+            {/* Consolidated Card */}
+            <div className="bg-slate-900 text-white p-5 rounded-xl flex flex-col justify-between">
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Soma de Recursos Consolidada</span>
+                <span className="text-2xl font-black text-emerald-400">{formatCurrency(summaryGrandTotal)}</span>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-[11px] text-slate-300">
+                <span>Total Geral ({activeMonth})</span>
+                {prevMonthHistory && (
+                  <div className="flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded text-white font-bold">
+                    <span>{deltaTotal >= 0 ? "▲" : "▼"} {formatCurrency(Math.abs(deltaTotal))}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Composition & MoM info footer */}
+          <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-600">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Distribuição:</span>
+              <div className="flex items-center gap-1.5 font-medium">
+                <span className="w-2.5 h-2.5 rounded-full bg-purple-600 inline-block" />
+                <span>{((summaryAccountsTotal / (summaryGrandTotal || 1)) * 100).toFixed(1)}% Contas</span>
+                <span className="text-slate-300">|</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block" />
+                <span>{((summaryInvestmentsTotal / (summaryGrandTotal || 1)) * 100).toFixed(1)}% Investimentos</span>
+              </div>
+            </div>
+            {prevMonthHistory && (
+              <div className="flex items-center gap-1.5 font-medium">
+                <span className="text-slate-400">Comparado a {prevMonthHistory.data}:</span>
+                {deltaTotal > 0 ? (
+                  <span className="text-emerald-600 font-bold">
+                    Crescimento de {formatCurrency(deltaTotal)} (+{((deltaTotal / (prevMonthHistory.total || 1)) * 100).toFixed(2)}%)
+                  </span>
+                ) : deltaTotal < 0 ? (
+                  <span className="text-red-500 font-bold">
+                    Queda de {formatCurrency(Math.abs(deltaTotal))} ({((deltaTotal / (prevMonthHistory.total || 1)) * 100).toFixed(2)}%)
+                  </span>
+                ) : (
+                  <span className="text-slate-500 font-bold">Sem alteração</span>
+                )}
+              </div>
+            )}
           </div>
         </section>
 
         {/* 2. Charts Visualizations */}
         <section className="mt-2">
-          <FinancialCharts history={history} />
+          <FinancialCharts history={history} accounts={accounts} investments={investments} />
         </section>
 
         {/* 3. Tables Section (Accounts & Investments Side-by-Side on LG screens, stacked on Mobile) */}

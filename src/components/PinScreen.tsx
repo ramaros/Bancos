@@ -29,7 +29,7 @@ export default function PinScreen({ onUnlock }: PinScreenProps) {
   useEffect(() => {
     async function checkPinConfig() {
       try {
-        const docRef = doc(db, "security", "config");
+        const docRef = doc(db, "config", "config");
         const docSnap = await getDoc(docRef);
         if (docSnap.exists() && docSnap.data().pinHash) {
           setIsSetup(false);
@@ -85,7 +85,7 @@ export default function PinScreen({ onUnlock }: PinScreenProps) {
   const handleVerifyPin = async () => {
     try {
       const enteredHash = await hashPIN(pin);
-      const docRef = doc(db, "security", "config");
+      const docRef = doc(db, "config", "config");
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists() && docSnap.data().pinHash === enteredHash) {
@@ -98,7 +98,7 @@ export default function PinScreen({ onUnlock }: PinScreenProps) {
       }
     } catch (err) {
       try {
-        handleFirestoreError(err, OperationType.GET, "security/config");
+        handleFirestoreError(err, OperationType.GET, "config/config");
       } catch (e) {
         setError("Erro de conexão. Verifique sua internet.");
         setPin("");
@@ -120,7 +120,7 @@ export default function PinScreen({ onUnlock }: PinScreenProps) {
     try {
       setLoading(true);
       const hashed = await hashPIN(pin);
-      await setDoc(doc(db, "security", "config"), {
+      await setDoc(doc(db, "config", "config"), {
         id: "config",
         pinHash: hashed,
         updatedAt: new Date().toISOString(),
@@ -129,7 +129,7 @@ export default function PinScreen({ onUnlock }: PinScreenProps) {
       onUnlock();
     } catch (err) {
       try {
-        handleFirestoreError(err, OperationType.WRITE, "security/config");
+        handleFirestoreError(err, OperationType.WRITE, "config/config");
       } catch (e) {
         setError("Erro ao cadastrar PIN. Verifique as regras do Firebase.");
       }
