@@ -8,18 +8,18 @@ service cloud.firestore {
 
     // Helper to validate IDs to prevent resource poisoning attacks
     function isValidId(id) {
-      return id is string && size(id) <= 128 && id.matches('^[a-zA-Z0-9_-]+$');
+      return id is string && id.size() <= 128;
     }
 
     match /accounts/{accountId} {
       allow read: if true;
       allow create, update: if isValidId(accountId)
         && request.resource.data.instituicao is string
-        && size(request.resource.data.instituicao) <= 100
+        && request.resource.data.instituicao.size() <= 100
         && request.resource.data.descricao is string
-        && size(request.resource.data.descricao) <= 200
+        && request.resource.data.descricao.size() <= 200
         && request.resource.data.responsavel is string
-        && size(request.resource.data.responsavel) <= 50
+        && request.resource.data.responsavel.size() <= 50
         && request.resource.data.saldo is number;
       allow delete: if true;
     }
@@ -28,9 +28,9 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if isValidId(investmentId)
         && request.resource.data.instituicao is string
-        && size(request.resource.data.instituicao) <= 100
+        && request.resource.data.instituicao.size() <= 100
         && request.resource.data.descricao is string
-        && size(request.resource.data.descricao) <= 200
+        && request.resource.data.descricao.size() <= 200
         && request.resource.data.saldo is number;
       allow delete: if true;
     }
@@ -39,7 +39,7 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if isValidId(historyId)
         && request.resource.data.data is string
-        && request.resource.data.data.matches('^[a-zA-Z0-9_-]+$')
+        && request.resource.data.data.size() <= 50
         && request.resource.data.contaBancaria is number
         && request.resource.data.investimentos is number
         && request.resource.data.total is number;
@@ -50,7 +50,7 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if isValidId(configId)
         && request.resource.data.pinHash is string
-        && size(request.resource.data.pinHash) <= 128;
+        && request.resource.data.pinHash.size() <= 128;
       allow delete: if true;
     }
   }
